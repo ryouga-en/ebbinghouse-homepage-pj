@@ -123,36 +123,38 @@ export function Header({
 
       {/* 右側: ユーザーメニュー */}
       <div className="w-[20%] flex items-center justify-end gap-2 pr-4">
-        <div className="relative" ref={userMenuRef}>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-8 h-8 p-0 rounded-full flex items-center justify-center"
-            style={{ backgroundColor: 'var(--brand)' }}
-            onClick={() => setShowUserMenu(!showUserMenu)}
-          >
-            <User className="h-4 w-4 text-white" />
-          </Button>
+        {user && (
+          <div className="relative" ref={userMenuRef}>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-8 h-8 p-0 rounded-full flex items-center justify-center"
+              style={{ backgroundColor: 'var(--brand)' }}
+              onClick={() => setShowUserMenu(!showUserMenu)}
+            >
+              <User className="h-4 w-4 text-white" />
+            </Button>
 
-          {showUserMenu && (
-            <div className="absolute right-0 top-full mt-1 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-50">
-              <div className="py-2">
-                <div className="px-4 py-2 border-b border-gray-100">
-                  <p className="text-sm font-medium text-gray-900">ユーザー</p>
-                  <p className="text-xs text-gray-500">{user?.email || "未ログイン"}</p>
+            {showUserMenu && (
+              <div className="absolute right-0 top-full mt-1 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-50">
+                <div className="py-2">
+                  <div className="px-4 py-2 border-b border-gray-100">
+                    <p className="text-sm font-medium text-gray-900">ユーザー</p>
+                    <p className="text-xs text-gray-500">{user.email}</p>
+                  </div>
+                  <button
+                    onClick={handleLogout}
+                    disabled={logoutMutation.isPending}
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    {logoutMutation.isPending ? "ログアウト中..." : "ログアウト"}
+                  </button>
                 </div>
-                <button
-                  onClick={handleLogout}
-                  disabled={logoutMutation.isPending}
-                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <LogOut className="h-4 w-4" />
-                  {logoutMutation.isPending ? "ログアウト中..." : "ログアウト"}
-                </button>
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
       </div>
     </header>
   )
