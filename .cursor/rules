@@ -1,0 +1,255 @@
+# プロジェクトルール（Cursor向け）
+
+以下のルールに従ってコード提案・修正・説明を行ってください。
+フロントエンドは **機能単位（feature-first）** で構成し、型とユーティリティの集中管理を徹底します。
+
+---
+
+## フロントエンド・ディレクトリ指針（Feature-First）
+
+```
+FRONTEND/
+├── app/          # Next.js App Router（ページ・ルーティング）
+├── atoms/        # Jotai atoms（UI状態のみ）
+├── stores/       # Zustand stores（アプリ状態）
+├── features/     # 機能モジュール（views/components/hooks/api/types/utils）
+├── shared/       # 横断資産
+│   ├── api/      # 複数機能で使うAPIクライアント
+│   ├── components/ # レイアウト・共通UI
+│   ├── hooks/    # 複数機能で使うhooks
+│   ├── providers/ # Context/Query providers
+│   ├── types/    # 横断的な型定義（機能特化）
+│   └── utils/    # 横断ユーティリティ
+├── styles/       # グローバルスタイル
+├── public/       # 静的アセット
+└── （configs, scripts, data 等）
+```
+
+### `app/`（Next.js App Router）
+- ページ・レイアウト・認証などの薄い責務のみ。UIや業務ロジックは `features/` に置く。
+- 各ルートは対応する機能ビューに委譲（例: `app/(main)/foo/page → features/foo/FooView`）。
+
+### `atoms/`（UI状態 - Jotai）
+- **UI状態のみ**（サイドバー開閉、モーダル表示、ページスコープの一時状態）
+- アプリ状態やサーバー状態は含めない
+
+### `stores/`（アプリ状態 - Zustand）
+- **アプリ全体で共有する状態**（認証、テーマ、言語設定）
+- ビジネスロジックを含む状態管理
+- 例: `stores/authStore.ts`, `stores/appStore.ts`
+
+---
+
+## 機能モジュール（`features/*`）
+
+```
+features/<feature-name>/
+├── FeatureNameView.tsx  # 主要画面
+├── components/          # 機能スコープのUI
+├── hooks/               # React Query hooks（データ取得・更新）
+├── api/                 # この機能専用のAPIクライアント
+├── types/               # Props・ViewModel等の型
+├── utils/               # 純粋関数（変換・整形・ビルダ）
+└── （任意）data/, constants/ 等
+```
+
+**原則**
+- **型は `types/` に集約**、コンポーネント内で再定義しない。
+- **ヘルパーは `utils/`** に集約、UIとロジックを分離。
+- **API配置**:
+  - 最初は `features/<name>/api/` に配置
+  - 2つ以上の機能から使われたら `shared/api/` に昇格
+  - 認証など明らかに共有されるものは最初から `shared/api/`
+- **hooks配置**:
+  - 機能固有のReact Query hooks → `features/<name>/hooks/`
+  - 複数機能で使うhooks → `shared/hooks/`
+
+---
+
+## 共有レイヤ（`shared/`）
+
+```
+shared/
+├── api/           # 複数機能で使うAPIクライアント
+│   └── auth.ts    # 認証API（複数機能から参照）
+├── components/    # レイアウト・共通UI
+│   ├── layout/    # AppShell, Header等
+│   ├── ui/        # Button, Input等の再利用可能コンポーネント
+│   └── icons/     # SVGアイコン
+├── hooks/         # 複数機能で使うhooks
+│   └── useAuth.ts # 認証用React Query hooks
+├── providers/     # Context/Query providers
+│   └── QueryProvider.tsx
+├── types/         # 横断的な型定義（機能特化した名前）
+│   ├── auth.ts    # 認証関連の型
+│   ├── layout.ts  # レイアウト関連の型
+│   └── app.ts     # アプリ共通の型
+└── utils/         # 横断ユーティリティ
+    ├── http.ts    # fetchJson等のHTTP関連
+    └── auth.ts    # 認証関連ユーティリティ
+```
+
+**使い分け**
+- **共有型（`shared/types/`）**: 複数機能から参照される正準定義
+  - 機能に特化した名前を付ける（`api.ts` ではなく `auth.ts`, `user.ts` 等）
+- **機能型（`features/*/types/`）**: その機能に閉じたPropsやViewモデル
+- **共有化は「実際に複数機能から参照されてから」行う**（YAGNI原則）
+
+---
+
+## 状態管理の方針
+
+このプロジェクトでは、状態の性質に応じて3つのライブラリを使い分けます。
+
+### React Query（@tanstack/react-query）
+- **用途**: サーバー状態の管理
+- **配置**: `features/*/hooks/` または `shared/hooks/`
+- **例**: ユーザーデータ取得、タスク一覧取得、ログイン・ログアウト
+- **特徴**: キャッシング、リトライ、楽観的更新
+
+### Zustand
+- **用途**: アプリ全体の状態管理（ビジネスロジック付き）
+- **配置**: `stores/`
+- **例**: 認証状態、テーマ設定、言語設定
+- **特徴**: シンプルなAPI、Redux DevTools対応
+
+### Jotai
+- **用途**: UI状態のみ
+- **配置**: `atoms/`
+- **例**: サイドバー開閉、モーダル表示、ページスコープの一時状態
+- **特徴**: Atomic、軽量、派生atomのサポート
+
+---
+
+## コーディング規約
+
+1. **インポート優先度**: `features/*` → `shared/*`。意図なき機能間依存を避ける。
+2. **型定義の分離**:
+   - コンポーネント内でinterfaceを定義しない
+   - 機能固有の型 → `features/<name>/types/`
+   - 横断的な型 → `shared/types/`（機能特化した名前: `auth.ts`, `layout.ts`）
+3. **関数の分離**:
+   - コンポーネント内のヘルパー関数は `utils/` に切り出す
+   - API呼び出しは `api/` に集約
+4. **API配置の基準**:
+   - 最初は `features/<name>/api/` に配置
+   - 2つ以上の機能から使われたら `shared/api/` に昇格
+   - 型定義は `shared/types/<機能名>.ts` に配置
+5. **再利用判断**: 早すぎる汎化は避け、実需要に基づき `shared/` へ昇格させる（YAGNI）
+6. **一時コード**: `features/sample/` や `components_tmp*/` は検証専用。依存禁止
+
+---
+
+## 具体的指示
+
+- **提案時は保存先フルパスを明記**（例: `features/user/hooks/useUserList.ts`）
+- **重複防止**: 既存の `types/`・`utils/`・`api/` を探索し、同等機能があれば再利用を提案
+- **責務分離**: コンポーネントから型定義・関数・APIクライアントを切り出すリファクタ案を優先提示
+- **型定義の命名**: 汎用的な名前（`api.ts`, `types.ts`）ではなく、機能特化した名前（`auth.ts`, `user.ts`）を使用
+- **状態管理**: 状態の性質に応じてReact Query/Zustand/Jotaiを適切に使い分ける
+- **大きな変更**: 影響範囲（参照元ファイル）・置換手順・ロールバック手順を併記
+- **依存追加／削除**: 理由・代替案・影響を簡潔に説明
+
+---
+
+## 実装例
+
+### 認証機能（横断的に使用）
+
+```
+stores/authStore.ts              # Zustand: 認証状態とビジネスロジック
+shared/api/auth.ts               # APIクライアント（login, logout, refresh）
+shared/types/auth.ts             # 型定義（LoginInput, LoginResponse等）
+shared/utils/auth.ts             # ユーティリティ（getUserFromCookie等）
+shared/hooks/useAuth.ts          # React Query hooks（useLoginMutation等）
+```
+
+### 機能固有の実装例
+
+```
+features/task/
+├── TaskView.tsx                 # メイン画面
+├── components/
+│   └── TaskCard.tsx
+├── hooks/
+│   ├── useTaskList.ts           # React Query: タスク一覧取得
+│   └── useTaskCreate.ts         # React Query: タスク作成
+├── api/
+│   └── taskApi.ts               # API関数（getTask, createTask等）
+├── types/
+│   ├── task.ts                  # Task型定義
+│   └── props.ts                 # コンポーネントProps
+└── utils/
+    └── taskHelpers.ts           # タスク関連のヘルパー関数
+```
+
+### UI状態の管理
+
+```
+atoms/appState.ts                # Jotai: サイドバー開閉状態等のUI状態
+```
+
+---
+
+## バックエンド・ディレクトリ指針（FastAPI - ハイブリッド構成）
+
+複雑なビジネスロジックと複数API連携がある中〜大規模プロジェクト向けのハイブリッドアーキテクチャを採用します。
+
+### ディレクトリ構成
+
+```
+BACKEND/
+└── app/
+    ├── api/
+    │   └── routes/           # ルーティング定義のみ
+    ├── crud/                 # シンプルなCRUD操作
+    ├── repositories/         # 複雑なDB操作の抽象化
+    ├── domain/               # ビジネスロジック
+    ├── services/             # アプリケーションサービス
+    ├── models/db/            # SQLAlchemyモデル
+    ├── schemas/api/          # Pydanticスキーマ（API入出力）
+    ├── core/                 # 設定・DB接続等
+    └── main.py
+```
+
+### 各層の責務と使い分け
+
+#### 1. `api/routes/` - プレゼンテーション層
+- **責務**: HTTPリクエスト/レスポンスのハンドリングのみ
+- **禁止**: ビジネスロジック、DB操作の直接記述
+- **依存**: `services/`, `domain/*/service.py`, `schemas/`
+
+#### 2. `crud/` - シンプルなデータアクセス
+- **用途**: 単純なCRUD操作（一覧、取得、作成、更新、削除）
+- **使う場面**: 1つのテーブルに対する基本的な操作
+- **使わない場面**: 複数テーブル結合、複雑な条件、トランザクション
+
+#### 3. `repositories/` - 複雑なデータアクセス
+- **用途**: 複雑なクエリ、複数テーブル結合、集計、トランザクション
+- **配置**: インターフェース + 実装を同じファイルに記述
+- **メリット**: 抽象化、テスタビリティ、複雑なロジックの整理
+
+#### 4. `domain/` - ドメイン層（ビジネスロジック）
+- **責務**: ビジネスルール、ドメインロジックの実装
+- **特徴**: インフラ（DB、外部API）に依存しない純粋なロジック
+- **構成**:
+  - `entity.py`: ドメインエンティティ、値オブジェクト
+  - `service.py`: ドメインサービス（エンティティ単体では表現できないロジック）
+
+#### 5. `services/` - アプリケーションサービス
+- **用途**: 複数のリポジトリ・ドメインサービス・外部APIを組み合わせた処理
+- **使う場面**:
+  - 複数のリポジトリを跨ぐトランザクション
+  - 外部API連携（メール送信、通知、決済等）
+  - 複雑なワークフロー
+
+### FastAPI プロジェクトの原則
+
+1. **責務の明確化**: 各層の役割を明確にし、責務を超えた処理を書かない
+2. **依存性逆転**: `repositories/` のインターフェースを活用してテスタビリティを向上
+3. **段階的な複雑化**:
+   - 最初は `crud/` で実装
+   - 複雑になったら `repositories/` に移行
+   - ビジネスロジックが増えたら `domain/` に切り出し
+4. **YAGNI**: 必要になるまで複雑な層を導入しない
+5. **一貫性**: 一度決めたパターンをプロジェクト内で一貫して使用
