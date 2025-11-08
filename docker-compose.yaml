@@ -1,0 +1,33 @@
+name: ${PROJECT_NAME}
+
+services:
+  frontend:
+    build:
+      context: ./FRONTEND
+      dockerfile: Dockerfile
+    command: npm run dev
+    ports:
+      - "3000:3000"
+    environment:
+      API_BASE_URL: ${BACKEND_INTERNAL_URL}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ISSUER: ${JWT_ISSUER}
+      ACCESS_TTL: ${ACCESS_TTL}
+      REFRESH_TTL: ${REFRESH_TTL}
+    volumes:
+      - ./FRONTEND:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+
+  backend:
+    build:
+      context: ./BACKEND
+      dockerfile: Dockerfile
+    command: ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    ports:
+      - "8000:8000"
+    environment:
+      CORS_ALLOW_ORIGINS: ${CORS_ALLOW_ORIGINS}
+    volumes:
+      - ./BACKEND:/app

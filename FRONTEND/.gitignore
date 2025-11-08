@@ -1,0 +1,77 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# --- Dependencies ---
+/node_modules
+
+# --- Next.js ---
+/.next/
+/out/
+.vercel
+
+# --- Production / Build ---
+/build
+/dist/
+.turbo/
+
+# --- Debug & Logs ---
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+logs
+*.log
+lerna-debug.log*
+pids
+*.pid
+*.seed
+*.pid.lock
+.eslintcache
+.stylelintcache
+
+# --- Coverage ---
+coverage/
+.nyc_output/
+
+# --- Testing (Cypress / Playwright など) ---
+cypress/screenshots/
+cypress/videos/
+cypress/downloads/
+playwright-report/
+test-results/
+blob-report/
+.playwright/
+
+# --- TypeScript ---
+*.tsbuildinfo
+# NOTE: next-env.d.ts はリポジトリに含める（ignore しない）
+
+# --- Environment files ---
+.env*
+!.env.example
+.envrc
+
+# --- OS / Editor junk ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/tasks.json
+# 共有したい場合のみ:
+# !.vscode/settings.json
+
+# --- Storybook ---
+storybook-static/
+
+# --- Editor swap files ---
+*.swp
+*.swo
+
+# --- Infrastructure as Code (Terraform を使う場合) ---
+.terraform/
+terraform.tfstate
+terraform.tfstate.*
+crash.log
+*.tfvars
+*.tfvars.json
+!.terraform.lock.hcl
