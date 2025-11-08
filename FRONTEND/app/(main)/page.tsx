@@ -1,5 +1,5 @@
-import SamplePageA from "@/features/sample-page-a/SamplePageAView"
+import HomeView from "@/features/home/HomeView"
 
 export default function HomePage() {
-  return <SamplePageA />
+  return <HomeView />
 }
