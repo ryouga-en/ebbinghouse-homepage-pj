@@ -6,3 +6,8 @@ export interface HeaderProps {
   searchQuery: string
   onSearchChange: (query: string) => void
 }
+
+export interface FooterProps {
+  searchQuery: string
+  onSearchChange: (query: string) => void
+}

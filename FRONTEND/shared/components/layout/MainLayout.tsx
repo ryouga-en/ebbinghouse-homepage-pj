@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useEffect } from "react"
-import { Header } from "@/shared/components/layout/Header"
+import { Footer } from "@/shared/components/layout/Footer"
 import { useAuthStore, useAuthLoading } from "@/stores/authStore"
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
@@ -32,11 +32,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="h-screen flex flex-col overflow-hidden">
-      <Header
+      <main className="flex-1 overflow-auto bg-white">{children}</main>
+      <Footer
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
       />
-      <main className="flex-1 overflow-auto bg-white">{children}</main>
     </div>
   )
 }
