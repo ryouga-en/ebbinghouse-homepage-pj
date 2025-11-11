@@ -1,0 +1,162 @@
+"use client"
+
+import { Search, User, LogOut } from "lucide-react"
+import { Button } from "@/shared/components/ui/button"
+import { Input } from "@/shared/components/ui/input"
+import { XIcon } from "@/shared/components/icons"
+import { useState, useRef, useEffect } from "react"
+import { useRouter, usePathname } from "next/navigation"
+import { useUser } from "@/stores/authStore"
+import { useLogoutMutation } from "@/shared/hooks/useAuth"
+import type { FooterProps } from "@/shared/types/layout"
+
+export function Footer({
+  searchQuery,
+  onSearchChange,
+}: FooterProps) {
+  const user = useUser()
+  const logoutMutation = useLogoutMutation()
+  const [showUserMenu, setShowUserMenu] = useState(false)
+  const userMenuRef = useRef<HTMLDivElement>(null)
+  const router = useRouter()
+  const pathname = usePathname()
+
+  // ユーザーメニューの外側をクリックした時に閉じる
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setShowUserMenu(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
+
+  const handleHomeClick = () => {
+    router.push("/")
+  }
+
+  const handleLogout = async () => {
+    setShowUserMenu(false)
+
+    try {
+      await logoutMutation.mutateAsync()
+      router.push("/login")
+    } catch (error) {
+      console.error("Logout error:", error)
+      alert("ログアウトに失敗しました")
+    }
+  }
+
+  const handleNavigation = (path: string) => {
+    router.push(path)
+  }
+
+  // 管理者かどうかを判定
+  const isAdmin = user?.roles?.includes("admin")
+
+  return (
+    <footer className="bg-white border-t border-gray-200 h-16 flex items-center px-4 ml-0">
+      {/* 左側: ロゴ */}
+      <div className="w-[20%] flex items-center gap-3">
+        <div
+          className="cursor-pointer select-none hover:bg-gray-100 rounded-md p-1 transition-colors"
+          title="ホームに戻る"
+          onClick={handleHomeClick}
+        >
+          <XIcon className="h-12 w-12" style={{ color: 'var(--brand)' }} />
+        </div>
+      </div>
+
+      {/* 中央: ナビゲーションと検索 */}
+      <div className="w-[60%] flex justify-center items-center gap-6 px-8">
+        {/* ナビゲーションメニュー */}
+        <nav className="flex gap-4">
+          <button
+            onClick={() => handleNavigation("/")}
+            className={`px-4 py-2 rounded-md transition-colors ${
+              pathname === "/"
+                ? "bg-gray-100 font-semibold"
+                : "hover:bg-gray-50"
+            }`}
+          >
+            ホーム
+          </button>
+          <button
+            onClick={() => handleNavigation("/articles")}
+            className={`px-4 py-2 rounded-md transition-colors ${
+              pathname?.startsWith("/articles")
+                ? "bg-gray-100 font-semibold"
+                : "hover:bg-gray-50"
+            }`}
+          >
+            記事一覧
+          </button>
+          {isAdmin && (
+            <button
+              onClick={() => handleNavigation("/admin/articles/edit")}
+              className={`px-4 py-2 rounded-md transition-colors ${
+                pathname?.startsWith("/admin")
+                  ? "bg-gray-100 font-semibold"
+                  : "hover:bg-gray-50"
+              }`}
+            >
+              記事編集
+            </button>
+          )}
+        </nav>
+
+        {/* 検索バー */}
+        <div className="relative w-64">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Input
+            placeholder="検索..."
+            className="pl-10 w-full bg-gray-50 border-gray-200"
+            value={searchQuery}
+            onChange={(e) => onSearchChange(e.target.value)}
+          />
+        </div>
+      </div>
+
+      {/* 右側: ユーザーメニュー */}
+      <div className="w-[20%] flex items-center justify-end gap-2 pr-4">
+        {user && (
+          <div className="relative" ref={userMenuRef}>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-8 h-8 p-0 rounded-full flex items-center justify-center"
+              style={{ backgroundColor: 'var(--brand)' }}
+              onClick={() => setShowUserMenu(!showUserMenu)}
+            >
+              <User className="h-4 w-4 text-white" />
+            </Button>
+
+            {showUserMenu && (
+              <div className="absolute right-0 bottom-full mb-1 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-50">
+                <div className="py-2">
+                  <div className="px-4 py-2 border-b border-gray-100">
+                    <p className="text-sm font-medium text-gray-900">ユーザー</p>
+                    <p className="text-xs text-gray-500">{user.email}</p>
+                  </div>
+                  <button
+                    onClick={handleLogout}
+                    disabled={logoutMutation.isPending}
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    {logoutMutation.isPending ? "ログアウト中..." : "ログアウト"}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </footer>
+  )
+}
+
